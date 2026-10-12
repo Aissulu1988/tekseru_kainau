@@ -1,0 +1,617 @@
+<!DOCTYPE html>
+<html lang="kk">
+<head>
+<meta charset="UTF-8">
+<title>Қайнау, меншікті булану жылуы — Интерактивті тапсырмалар</title>
+<style>
+  :root{
+    --teal:#00897B; --teal-dark:#2E3A3A; --mint:#C8E6C9; --mint-light:#E8F5E9;
+    --blue-light:#E3F2FD; --yellow-light:#FFF9C4; --purple-light:#F3E5F5; --pink-light:#FCE4EC;
+    --orange:#FF8A65; --ink:#2E3A3A; --gray:#6B7A78; --bg:#FAFDFC; --card:#FFFFFF;
+    --ok:#2E7D32; --bad:#C62828; --radius:16px;
+  }
+  *{box-sizing:border-box;}
+  body{ margin:0; font-family:"Segoe UI",Calibri,Arial,sans-serif; background:var(--bg); color:var(--ink); padding:24px 16px 60px; }
+  h1{ text-align:center; color:var(--teal-dark); font-size:25px; margin:0 0 4px; }
+  .subtitle{ text-align:center; color:var(--gray); margin:0 0 22px; font-size:14px;}
+  .tabs{ display:flex; flex-wrap:wrap; gap:8px; justify-content:center; max-width:1080px; margin:0 auto 22px; }
+  .tab{ padding:10px 14px; border-radius:999px; background:var(--card); border:2px solid var(--mint);
+    cursor:pointer; font-size:13px; font-weight:700; color:var(--teal-dark); transition:.15s; user-select:none; }
+  .tab:hover{ background:var(--mint-light); }
+  .tab.active{ background:var(--teal); border-color:var(--teal); color:#fff; }
+  .panel{ display:none; max-width:1080px; margin:0 auto; background:var(--card); border-radius:var(--radius);
+    padding:26px 28px; box-shadow:0 6px 20px rgba(46,58,58,.08); }
+  .panel.active{ display:block; }
+  .panel h2{ color:var(--teal-dark); margin-top:0; font-size:20px;}
+  .panel p.instr{ color:var(--gray); font-size:14px; margin-top:-6px;}
+  .btn{ background:var(--teal); color:#fff; border:none; padding:10px 20px; border-radius:10px;
+    font-size:14px; font-weight:700; cursor:pointer; margin-top:14px; margin-right:8px; }
+  .btn:hover{ opacity:.9; }
+  .btn.secondary{ background:var(--mint-light); color:var(--teal-dark); }
+  .btn.next{ background:var(--orange); }
+  .score{ font-weight:700; color:var(--teal); margin-left:10px; }
+  .feedback{ margin-top:12px; font-weight:600; padding:10px 14px; border-radius:10px; display:none; }
+  .feedback.ok{ background:#E8F5E9; color:var(--ok); display:block; }
+  .feedback.bad{ background:#FFEBEE; color:var(--bad); display:block; }
+
+  /* Drag & Drop */
+  .dd-source{ display:flex; flex-wrap:wrap; gap:10px; margin:16px 0; min-height:50px; padding:12px; background:var(--mint-light); border-radius:12px; }
+  .dd-chip{ background:#fff; border:2px solid var(--teal); color:var(--teal-dark); padding:8px 14px; border-radius:10px;
+    cursor:grab; font-size:13px; font-weight:600; box-shadow:0 2px 6px rgba(0,0,0,.08); }
+  .dd-chip.dragging{ opacity:.4; }
+  .dd-zones{ display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-top:6px; }
+  .dd-zone{ min-height:120px; background:var(--bg); border:2px dashed var(--mint); border-radius:12px; padding:10px; }
+  .dd-zone.over{ background:var(--mint-light); border-color:var(--teal); }
+  .dd-zone h4{ margin:0 0 8px; font-size:13px; color:var(--teal-dark); text-align:center; }
+  .dd-zone .dd-chip{ cursor:default; margin:4px 0; display:block; }
+
+  /* Matching */
+  .match-wrap{ display:flex; justify-content:space-between; gap:40px; margin-top:16px; }
+  .match-col{ flex:1; display:flex; flex-direction:column; gap:10px; }
+  .match-item{ background:var(--mint-light); border:2px solid transparent; border-radius:10px; padding:10px 14px;
+    cursor:pointer; font-size:13.5px; font-weight:600; color:var(--teal-dark); text-align:center; }
+  .match-item.selected{ border-color:var(--orange); background:#FFF3E0; }
+  .match-item.correct{ background:#E8F5E9; border-color:var(--ok); color:var(--ok); }
+  .match-item.wrong{ background:#FFEBEE; border-color:var(--bad); color:var(--bad); }
+
+  /* True/False & Multiple Choice */
+  .tf-item{ display:flex; justify-content:space-between; align-items:center; gap:12px; padding:12px 16px;
+    background:var(--bg); border-radius:10px; margin-bottom:10px; font-size:14px; }
+  .tf-buttons button{ border:2px solid var(--teal); background:#fff; color:var(--teal-dark); padding:6px 14px; border-radius:8px;
+    cursor:pointer; font-weight:600; margin-left:6px; font-size:13px; }
+  .tf-buttons button.chosen-true{ background:var(--teal); color:#fff; }
+  .tf-buttons button.chosen-false{ background:var(--orange); color:#fff; border-color:var(--orange); }
+  .tf-item.correct{ box-shadow: inset 0 0 0 2px var(--ok); }
+  .tf-item.wrong{ box-shadow: inset 0 0 0 2px var(--bad); }
+
+  .mc-question{ background:var(--bg); border-radius:12px; padding:14px 16px; margin-bottom:14px; }
+  .mc-question p{ font-weight:700; margin-top:0; }
+  .mc-options button{ display:block; width:100%; text-align:left; padding:9px 12px; border-radius:8px; border:2px solid var(--mint);
+    background:#fff; margin-bottom:6px; cursor:pointer; font-size:13.5px; color:var(--ink); }
+  .mc-options button.correct{ border-color:var(--ok); background:#E8F5E9; color:var(--ok); font-weight:700; }
+  .mc-options button.wrong{ border-color:var(--bad); background:#FFEBEE; color:var(--bad); }
+
+  /* Fill in the blanks & formula completion */
+  .fib-sentence{ font-size:15.5px; line-height:2.1; background:var(--bg); border-radius:12px; padding:16px 18px; margin-bottom:10px; }
+  .fib-sentence input{ width:130px; border:none; border-bottom:2px solid var(--teal); background:transparent;
+    font-size:15px; font-weight:700; color:var(--teal-dark); text-align:center; padding:2px 4px; }
+  .fib-sentence input.correct{ border-color:var(--ok); color:var(--ok); }
+  .fib-sentence input.wrong{ border-color:var(--bad); color:var(--bad); }
+
+  /* Table fill */
+  table.fill{ width:100%; border-collapse:collapse; margin-top:14px; font-size:14px; }
+  table.fill th, table.fill td{ border:1px solid var(--mint); padding:10px; text-align:left; }
+  table.fill th{ background:var(--mint-light); color:var(--teal-dark); }
+  table.fill input{ width:100%; padding:6px; border-radius:6px; border:1px solid var(--mint); font-size:13px; }
+  table.fill tr.correct td{ background:#E8F5E9; }
+  table.fill tr.wrong td{ background:#FFEBEE; }
+
+  /* Graph analysis */
+  .graph-wrap{ background:var(--bg); border-radius:12px; padding:14px; margin-top:10px; }
+
+  footer{ text-align:center; color:var(--gray); font-size:12px; margin-top:30px; }
+  .dd-chip{ touch-action:none; user-select:none; -webkit-user-select:none; }
+  .dd-zone .dd-chip{ cursor:grab; }
+  .dd-chip.selected{ outline:3px solid var(--orange); }
+  .dd-ghost{ position:fixed; z-index:999; pointer-events:none; opacity:.9; margin:0; }
+  .namebar{ max-width:1080px; margin:0 auto 14px; text-align:center; font-size:14px; }
+  .namebar input{ padding:8px 12px; border:2px solid var(--mint); border-radius:8px; font-size:14px; width:260px; }
+  #calc-hint{ font-size:13px; color:var(--gray); margin-top:8px; }
+  @media print{ .tabs,.btn,.namebar input{ display:none; } .panel{ box-shadow:none; } }
+</style>
+</head>
+<body>
+
+<h1>Қайнау, меншікті булану жылуы — Интерактивті тапсырмалар</h1>
+<p class="subtitle">8-сынып · 8.3.2.15, 8.3.2.16</p>
+
+<div class="namebar">Оқушының аты-жөні: <input type="text" id="student-name" placeholder="Аты-жөніңді жаз"></div>
+
+<div class="tabs">
+  <div class="tab active" data-tab="dd">🧲 Drag&Drop</div>
+  <div class="tab" data-tab="match">🔗 Matching</div>
+  <div class="tab" data-tab="tf">✅ True/False</div>
+  <div class="tab" data-tab="mc">🔘 Multiple Choice</div>
+  <div class="tab" data-tab="fib">✏️ Fill blanks</div>
+  <div class="tab" data-tab="formula">🧮 Формула</div>
+  <div class="tab" data-tab="graph">📈 График</div>
+  <div class="tab" data-tab="table">📋 Кесте</div>
+  <div class="tab" data-tab="calc">➗ Есеп</div>
+  <div class="tab" data-tab="result">📊 Нәтиже</div>
+</div>
+
+<!-- DRAG & DROP -->
+<div class="panel active" id="panel-dd">
+  <h2>Drag & Drop: жағдаятты санатқа жатқыз</h2>
+  <p class="instr">Әр карточканы «Қалыпты/жоғары қысым» немесе «Төмен қысым» қобдишасына сүйреп апар (телефонда/планшетте: карточканы бас, содан кейін қобдишаны бас).</p>
+  <div class="dd-source" id="dd-source"></div>
+  <div class="dd-zones" id="dd-zones"></div>
+  <button class="btn" onclick="checkDD()">Check</button>
+  <button class="btn secondary" onclick="resetDD()">Reset</button>
+  <span class="score" id="dd-score"></span>
+  <div class="feedback" id="dd-feedback"></div>
+</div>
+
+<!-- MATCHING -->
+<div class="panel" id="panel-match">
+  <h2>Сәйкестендіру: термин — анықтама</h2>
+  <p class="instr">Сол жақтан бір терминді, содан кейін оң жақтан оның анықтамасын таңда.</p>
+  <div class="match-wrap">
+    <div class="match-col" id="match-left"></div>
+    <div class="match-col" id="match-right"></div>
+  </div>
+  <button class="btn secondary" onclick="resetMatch()">Reset</button>
+  <span class="score" id="match-score"></span>
+</div>
+
+<!-- TRUE/FALSE -->
+<div class="panel" id="panel-tf">
+  <h2>True / False</h2>
+  <p class="instr">Әр тұжырымды оқып, «Дұрыс» немесе «Бұрыс» батырмасын бас.</p>
+  <div id="tf-list"></div>
+  <button class="btn" onclick="checkTF()">Check</button>
+  <button class="btn secondary" onclick="resetTF()">Reset</button>
+  <span class="score" id="tf-score"></span>
+</div>
+
+<!-- MULTIPLE CHOICE -->
+<div class="panel" id="panel-mc">
+  <h2>Multiple Choice</h2>
+  <p class="instr">Дұрыс жауапты таңда — бірден тексеріледі.</p>
+  <div id="mc-list"></div>
+  <button class="btn secondary" onclick="resetMC()">Reset</button>
+  <span class="score" id="mc-score"></span>
+</div>
+
+<!-- FILL IN BLANKS -->
+<div class="panel" id="panel-fib">
+  <h2>Fill in the blanks</h2>
+  <p class="instr">Сөйлемдердегі бос орындарды дұрыс сөзбен толтыр.</p>
+  <div id="fib-list"></div>
+  <button class="btn" onclick="checkFIB()">Check</button>
+  <button class="btn secondary" onclick="resetFIB()">Reset</button>
+  <span class="score" id="fib-score"></span>
+</div>
+
+<!-- FORMULA COMPLETION -->
+<div class="panel" id="panel-formula">
+  <h2>Формуланы толықтыру</h2>
+  <p class="instr">Q = L · m формуласындағы әрпіне сай анықтаманы жаз.</p>
+  <div id="formula-list"></div>
+  <button class="btn" onclick="checkFormula()">Check</button>
+  <button class="btn secondary" onclick="resetFormula()">Reset</button>
+  <span class="score" id="formula-score"></span>
+</div>
+
+<!-- GRAPH ANALYSIS -->
+<div class="panel" id="panel-graph">
+  <h2>Графикті талдау</h2>
+  <p class="instr">Температура-уақыт графигін қара да, сұраққа жауап бер.</p>
+  <div class="graph-wrap">
+    <svg viewBox="0 0 400 220" width="100%" height="220">
+      <line x1="40" y1="10" x2="40" y2="200" stroke="#6B7A78" stroke-width="2"/>
+      <line x1="40" y1="200" x2="380" y2="200" stroke="#6B7A78" stroke-width="2"/>
+      <polyline points="40,180 100,110 180,60 180,60 280,60 340,20" fill="none" stroke="#00897B" stroke-width="3"/>
+      <text x="5" y="15" font-size="10" fill="#6B7A78">t°C</text>
+      <text x="360" y="215" font-size="10" fill="#6B7A78">уақыт</text>
+    </svg>
+  </div>
+  <p style="font-weight:700; margin-top:10px;">Сұрақ: Графиктегі жазық (көлбеу емес) бөлік нені білдіреді?</p>
+  <div class="mc-options" id="graph-options"></div>
+  <div class="feedback" id="graph-feedback"></div>
+</div>
+
+<!-- TABLE FILL -->
+<div class="panel" id="panel-table">
+  <h2>Кестені толтыр</h2>
+  <p class="instr">Әр жағдайға сәйкес қайнау температурасын жаз (шамамен мән жеткілікті).</p>
+  <table class="fill" id="fill-table">
+    <thead><tr><th>Жағдай</th><th>Қайнау температурасы (°C)</th></tr></thead>
+    <tbody></tbody>
+  </table>
+  <button class="btn" onclick="checkFillTable()">Check</button>
+  <button class="btn secondary" onclick="resetFillTable()">Reset</button>
+  <span class="score" id="fill-score"></span>
+</div>
+
+<!-- CALCULATION -->
+<div class="panel" id="panel-calc">
+  <h2>Есеп шығару</h2>
+  <p class="instr">Есепті шығарып, жауабыңды енгіз.</p>
+  <div id="calc-question"></div>
+  <input type="text" id="calc-input" placeholder="жауап" style="padding:10px;border:2px solid var(--mint);border-radius:8px;font-size:15px;width:220px;margin-top:10px;">
+  <div id="calc-hint"></div>
+  <button class="btn" onclick="checkCalc()">Check</button>
+  <button class="btn secondary" onclick="nextCalc()">Random тапсырма</button>
+  <div class="feedback" id="calc-feedback"></div>
+</div>
+
+<div class="panel" id="panel-result">
+  <h2>Нәтиже</h2>
+  <p class="instr">Барлық тапсырмалардағы ұпайлар осында жиналады. Жоғарыдағы жолға атыңды жазып, нәтижені көшір немесе файл етіп жүктеп ал.</p>
+  <div id="res-body"></div>
+  <button class="btn" onclick="copyRes()">Көшіру</button>
+  <button class="btn secondary" onclick="dlRes()">Жүктеп алу (.csv)</button>
+  <button class="btn secondary" onclick="window.print()">Басып шығару</button>
+  <div class="feedback" id="res-fb"></div>
+</div>
+
+<footer>Қайнау, меншікті булану жылуы · 8-сынып · ҚМЖ №130 бұйрығына сәйкес</footer>
+
+<script>
+/* TAB SWITCHING */
+document.querySelectorAll('.tab').forEach(tab=>{
+  tab.addEventListener('click', ()=>{
+    document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+    document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+    tab.classList.add('active');
+    document.getElementById('panel-'+tab.dataset.tab).classList.add('active');
+  });
+});
+
+/* ============== ЖАЛПЫ ============== */
+const shuf=a=>{a=[...a];for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;};
+const nrm=s=>s.toLocaleLowerCase('kk').replace(/[.!]+$/,'').replace(/\s+/g,' ').trim();
+const RES={};
+const NAMES={dd:'Drag&Drop',match:'Matching',tf:'True/False',mc:'Multiple Choice',fib:'Fill blanks',formula:'Формула',graph:'График',table:'Кесте',calc:'Есеп'};
+function record(k,g,t){RES[k]={g,t};renderResults();}
+function del(k){delete RES[k];renderResults();}
+const studentName=()=>document.getElementById('student-name').value.trim();
+
+/* ============== DRAG & DROP (pointer events: тінтуір + сенсор) ============== */
+const ddZonesDef=[{key:'high',name:'Қысым қазаны (жоғары қысым)'},{key:'low',name:'Биік тау (төмен қысым)'}];
+const ddItems=[
+  {id:1,text:'Су 100°C-тан жоғары қайнайды',cat:'high'},
+  {id:2,text:'Су 100°C-тан төмен қайнайды',cat:'low'},
+  {id:3,text:'Тағам тезірек піседі',cat:'high'},
+  {id:4,text:'Тамақ баяу піседі',cat:'low'},
+  {id:5,text:'Атмосфералық қысым төмен',cat:'low'},
+  {id:6,text:'Ыдыс герметикалық жабылған',cat:'high'},
+];
+let ddSel=null, ddDrag=null;
+const ddTarget=(x,y)=>{const el=document.elementFromPoint(x,y);return el&&el.closest('.dd-zone,#dd-source');};
+function ddPlace(chip,t){t.appendChild(chip);chip.style.borderColor=chip.style.background='';chip.classList.remove('selected');ddSel=null;}
+function ddClean(){document.querySelectorAll('.dd-zone').forEach(z=>z.classList.remove('over'));}
+function makeChip(it){
+  const chip=document.createElement('div');
+  chip.className='dd-chip';chip.textContent=it.text;chip.dataset.id=it.id;chip.dataset.cat=it.cat;
+  chip.addEventListener('pointerdown',e=>{
+    if(e.button>0)return; chip.setPointerCapture(e.pointerId);
+    ddDrag={chip,x:e.clientX,y:e.clientY,moved:false,ghost:null};
+  });
+  chip.addEventListener('pointermove',e=>{
+    const d=ddDrag; if(!d||d.chip!==chip)return;
+    if(!d.moved&&Math.hypot(e.clientX-d.x,e.clientY-d.y)<6)return;
+    d.moved=true;
+    if(!d.ghost){d.ghost=chip.cloneNode(true);d.ghost.className='dd-chip dd-ghost';d.ghost.style.width=chip.offsetWidth+'px';document.body.appendChild(d.ghost);chip.classList.add('dragging');}
+    d.ghost.style.left=(e.clientX-20)+'px';d.ghost.style.top=(e.clientY-16)+'px';
+    ddClean();const t=ddTarget(e.clientX,e.clientY);if(t&&t.classList.contains('dd-zone'))t.classList.add('over');
+  });
+  chip.addEventListener('pointerup',e=>{
+    const d=ddDrag; ddDrag=null; if(!d)return; ddClean();
+    if(d.moved){
+      d.ghost.remove();chip.classList.remove('dragging');
+      const t=ddTarget(e.clientX,e.clientY); if(t)ddPlace(chip,t);
+    } else {
+      if(ddSel===chip){chip.classList.remove('selected');ddSel=null;}
+      else{if(ddSel)ddSel.classList.remove('selected');ddSel=chip;chip.classList.add('selected');}
+    }
+  });
+  chip.addEventListener('pointercancel',()=>{if(ddDrag&&ddDrag.ghost)ddDrag.ghost.remove();chip.classList.remove('dragging');ddDrag=null;ddClean();});
+  return chip;
+}
+document.getElementById('dd-source').addEventListener('click',e=>{if(ddSel&&!e.target.closest('.dd-chip'))ddPlace(ddSel,e.currentTarget);});
+function buildDD(){
+  const source=document.getElementById('dd-source'),zonesWrap=document.getElementById('dd-zones');
+  source.innerHTML='';zonesWrap.innerHTML='';ddSel=null;del('dd');
+  document.getElementById('dd-feedback').className='feedback';document.getElementById('dd-score').textContent='';
+  shuf(ddItems).forEach(it=>source.appendChild(makeChip(it)));
+  ddZonesDef.forEach(c=>{
+    const zone=document.createElement('div');zone.className='dd-zone';zone.dataset.cat=c.key;
+    zone.innerHTML=`<h4>${c.name}</h4>`;
+    zone.addEventListener('click',e=>{if(ddSel&&!e.target.closest('.dd-chip'))ddPlace(ddSel,zone);});
+    zonesWrap.appendChild(zone);
+  });
+}
+function checkDD(){
+  let correct=0;const total=ddItems.length;
+  document.querySelectorAll('.dd-zone').forEach(zone=>zone.querySelectorAll('.dd-chip').forEach(chip=>{
+    const ok=chip.dataset.cat===zone.dataset.cat;
+    chip.style.borderColor=ok?'#2E7D32':'#C62828';chip.style.background=ok?'#E8F5E9':'#FFEBEE';
+    if(ok)correct++;
+  }));
+  const left=document.querySelectorAll('#dd-source .dd-chip').length;
+  const fb=document.getElementById('dd-feedback');
+  fb.className='feedback '+(correct===total?'ok':'bad');
+  fb.textContent=`Score: ${correct}/${total}`+(left?` (${left} карточка орналастырылмады)`:'');
+  document.getElementById('dd-score').textContent=`${correct}/${total}`;
+  record('dd',correct,total);
+}
+function resetDD(){buildDD();}
+buildDD();
+
+/* ============== MATCHING ============== */
+const matchPairs=[
+  {left:'Қайнау',right:'Бүкіл көлемде жүретін қарқынды булану'},
+  {left:'Меншікті булану жылуы',right:'1 кг сұйықты буға айналдыруға қажет жылу'},
+  {left:'Атмосфералық қысым',right:'Ауа қабатының салмағынан туындайтын қысым'},
+  {left:'Қысым қазаны',right:'Герметикалық ыдыс, қайнау t° жоғарылатады'},
+  {left:'Конденсация',right:'Будың сұйыққа айналуы, жылу бөлінеді'},
+];
+let matchSelectedLeft=null,matchSolved=0;
+function buildMatch(){
+  const L=document.getElementById('match-left'),R=document.getElementById('match-right');
+  L.innerHTML='';R.innerHTML='';matchSelectedLeft=null;matchSolved=0;del('match');
+  document.getElementById('match-score').textContent=`0/${matchPairs.length}`;
+  const mk=(item,col,fn)=>{const d=document.createElement('div');d.className='match-item';d.textContent=item.text;d.dataset.idx=item.idx;d.addEventListener('click',()=>fn(d));col.appendChild(d);};
+  shuf(matchPairs.map((p,i)=>({text:p.left,idx:i}))).forEach(i=>mk(i,L,selectMatchLeft));
+  shuf(matchPairs.map((p,i)=>({text:p.right,idx:i}))).forEach(i=>mk(i,R,selectMatchRight));
+}
+function selectMatchLeft(div){
+  if(div.classList.contains('correct'))return;
+  document.querySelectorAll('#match-left .match-item').forEach(d=>d.classList.remove('selected'));
+  div.classList.add('selected');matchSelectedLeft=div;
+}
+function selectMatchRight(div){
+  if(!matchSelectedLeft||div.classList.contains('correct'))return;
+  if(matchSelectedLeft.dataset.idx===div.dataset.idx){
+    matchSelectedLeft.classList.remove('selected');matchSelectedLeft.classList.add('correct');div.classList.add('correct');
+    matchSolved++;document.getElementById('match-score').textContent=`${matchSolved}/${matchPairs.length}`;matchSelectedLeft=null;
+    record('match',matchSolved,matchPairs.length);
+  } else {div.classList.add('wrong');setTimeout(()=>div.classList.remove('wrong'),500);}
+}
+function resetMatch(){buildMatch();}
+buildMatch();
+
+/* ============== TRUE/FALSE ============== */
+const tfStatements=[
+  {text:'Қайнау тек сұйықтың бетінде жүреді.',answer:false},
+  {text:'Бу конденсацияланғанда айналаға жылу бөлінеді.',answer:true},
+  {text:'Спирт пен су бірдей массада болса, суды буландыруға көбірек жылу қажет (L су > L спирт).',answer:true},
+  {text:'Биік тауда су 100°C-тан жоғары қайнайды.',answer:false},
+  {text:'Қайнау кезінде судың температурасы тұрақты болады.',answer:true},
+  {text:'Массаны m = Q / L формуласымен табуға болады.',answer:true},
+  {text:'Қайнап жатқан суға жылу берілмесе де, ол қайнай береді.',answer:false},
+];
+const tfChoices={};
+function buildTF(){
+  const wrap=document.getElementById('tf-list');wrap.innerHTML='';document.getElementById('tf-score').textContent='';del('tf');
+  tfStatements.forEach((s,i)=>{
+    const row=document.createElement('div');row.className='tf-item';row.dataset.idx=i;
+    row.innerHTML=`<span>${s.text}</span><span class="tf-buttons"><button onclick="chooseTF(${i},true,this)">Дұрыс</button><button onclick="chooseTF(${i},false,this)">Бұрыс</button></span>`;
+    wrap.appendChild(row);
+  });
+}
+function chooseTF(i,val,btn){
+  tfChoices[i]=val;const row=btn.closest('.tf-item');
+  row.querySelectorAll('button').forEach(b=>b.classList.remove('chosen-true','chosen-false'));
+  btn.classList.add(val?'chosen-true':'chosen-false');
+}
+function checkTF(){
+  let correct=0;
+  document.querySelectorAll('.tf-item').forEach(row=>{
+    const i=+row.dataset.idx,c=tfChoices[i];row.classList.remove('correct','wrong');
+    if(c===undefined)return;
+    if(c===tfStatements[i].answer){row.classList.add('correct');correct++;}else row.classList.add('wrong');
+  });
+  document.getElementById('tf-score').textContent=`${correct}/${tfStatements.length}`;
+  record('tf',correct,tfStatements.length);
+}
+function resetTF(){for(const k in tfChoices)delete tfChoices[k];buildTF();}
+buildTF();
+
+/* ============== MULTIPLE CHOICE (нұсқалар әр рет араласады) ============== */
+const mcQuestions=[
+  {q:'Қысым қазанында су неге 100°C-тан жоғары қайнайды?',a:'Қазан ішіндегі қысым жоғары',w:['Су құрамы өзгереді','Су тазалығы жоғары']},
+  {q:'100 г су мен 100 г эфирді қайнау температурасында буландыру үшін қайсысына көп жылу қажет?',a:'Суға (L су эфирден үлкен)',w:['Эфирге','Екеуіне бірдей']},
+  {q:'Қайнау температурасындағы бу сұйыққа айналғанда (конденсация) не болады?',a:'Жылу бөлінеді',w:['Жылу жұтылады','Жылу алмасу болмайды']},
+];
+let mcScore={};
+function buildMC(){
+  const wrap=document.getElementById('mc-list');wrap.innerHTML='';document.getElementById('mc-score').textContent='';mcScore={};del('mc');
+  mcQuestions.forEach(q=>{
+    const div=document.createElement('div');div.className='mc-question';
+    div.innerHTML=`<p>${q.q}</p><div class="mc-options"></div>`;wrap.appendChild(div);
+    const ow=div.querySelector('.mc-options');
+    shuf([q.a,...q.w]).forEach(opt=>{
+      const b=document.createElement('button');b.textContent=opt;
+      b.onclick=()=>{
+        const qi=mcQuestions.indexOf(q);if(qi in mcScore)return;
+        const ok=opt===q.a;mcScore[qi]=ok?1:0;b.classList.add(ok?'correct':'wrong');
+        if(!ok)ow.querySelectorAll('button').forEach(x=>{if(x.textContent===q.a)x.classList.add('correct');});
+        updateMCScore();
+      };
+      ow.appendChild(b);
+    });
+  });
+}
+function updateMCScore(){
+  const got=Object.values(mcScore).reduce((a,b)=>a+b,0);
+  document.getElementById('mc-score').textContent=`${got}/${mcQuestions.length}`;
+  record('mc',got,mcQuestions.length);
+}
+function resetMC(){buildMC();}
+buildMC();
+
+/* ============== FILL IN THE BLANKS (синонимдермен) ============== */
+const fibData=[
+  {before:'',a:['қайнау'],after:' — сұйықтың бүкіл көлемінде бу көпіршіктерінің түзілуімен жүретін процесс.'},
+  {before:'Меншікті булану жылуының өлшем бірлігі — ',a:['дж/кг'],after:'.'},
+  {before:'Қысым жоғарыласа, қайнау температурасы ',a:['жоғарылайды','артады','өседі','көбейеді','көтеріледі','жоғарлайды'],after:'.'},
+  {before:'Бу сұйыққа айналғанда (конденсация) жылу ',a:['бөлінеді','бөлініп шығады','шығарылады','бөлініп шығарылады','бөліп шығарады'],after:'.'},
+];
+const sl=s=>nrm(s).replace(/\s/g,'');
+function buildFIB(){
+  const wrap=document.getElementById('fib-list');wrap.innerHTML='';document.getElementById('fib-score').textContent='';del('fib');
+  fibData.forEach((f,i)=>{
+    const div=document.createElement('div');div.className='fib-sentence';
+    div.innerHTML=`${f.before}<input type="text" id="fib-${i}" autocomplete="off">${f.after}`;wrap.appendChild(div);
+  });
+}
+function checkFIB(){
+  let correct=0;
+  fibData.forEach((f,i)=>{
+    const inp=document.getElementById('fib-'+i),v=sl(inp.value);inp.classList.remove('correct','wrong');
+    if(f.a.some(x=>sl(x)===v)){inp.classList.add('correct');correct++;}else if(v!=='')inp.classList.add('wrong');
+  });
+  document.getElementById('fib-score').textContent=`${correct}/${fibData.length}`;
+  record('fib',correct,fibData.length);
+}
+function resetFIB(){buildFIB();}
+buildFIB();
+
+/* ============== FORMULA (қатаң тексеру) ============== */
+const formulaData=[
+  {letter:'Q',ok:s=>/жылу\s*мөлшері/.test(s)&&!/меншікті|булану/.test(s)},
+  {letter:'L',ok:s=>/меншікті/.test(s)&&/булану/.test(s)},
+  {letter:'m',ok:s=>/^(зат(тың)?\s*)?масса(сы)?$/.test(s)},
+];
+function buildFormula(){
+  const wrap=document.getElementById('formula-list');wrap.innerHTML='';document.getElementById('formula-score').textContent='';del('formula');
+  formulaData.forEach((f,i)=>{
+    const div=document.createElement('div');div.className='fib-sentence';
+    div.innerHTML=`Q = L · m формуласында <b>${f.letter}</b> — <input type="text" id="formula-${i}" placeholder="анықтама" style="width:230px" autocomplete="off">`;
+    wrap.appendChild(div);
+  });
+}
+function checkFormula(){
+  let correct=0;
+  formulaData.forEach((f,i)=>{
+    const inp=document.getElementById('formula-'+i),v=nrm(inp.value);inp.classList.remove('correct','wrong');
+    if(f.ok(v)){inp.classList.add('correct');correct++;}else if(v!=='')inp.classList.add('wrong');
+  });
+  document.getElementById('formula-score').textContent=`${correct}/${formulaData.length}`;
+  record('formula',correct,formulaData.length);
+}
+function resetFormula(){buildFormula();}
+buildFormula();
+
+/* ============== GRAPH ============== */
+let graphDone=false;
+function buildGraphQuiz(){
+  const wrap=document.getElementById('graph-options');wrap.innerHTML='';graphDone=false;del('graph');
+  document.getElementById('graph-feedback').className='feedback';
+  shuf([
+    {t:'Температураның тез көтерілуі',ok:false},
+    {t:'Қайнау кезеңі — берілген жылу буға айналуға жұмсалады, t° тұрақты',ok:true},
+    {t:'Сұйықтың суынуы',ok:false},
+  ]).forEach(o=>{
+    const b=document.createElement('button');b.textContent=o.t;
+    b.onclick=()=>{
+      if(graphDone)return;graphDone=true;
+      const fb=document.getElementById('graph-feedback');
+      if(o.ok){b.classList.add('correct');fb.className='feedback ok';fb.textContent='✔ Дұрыс!';}
+      else{b.classList.add('wrong');fb.className='feedback bad';fb.textContent='✘ Қате. Жазық бөлікте температураның өзгермейтініне назар аудар.';
+        wrap.querySelectorAll('button').forEach(x=>{if(x.textContent.startsWith('Қайнау кезеңі'))x.classList.add('correct');});}
+      record('graph',o.ok?1:0,1);
+    };
+    wrap.appendChild(b);
+  });
+}
+buildGraphQuiz();
+
+/* ============== TABLE ============== */
+const fillRows=[
+  {situation:'Теңіз деңгейінде (қалыпты қысым)',correct:100,tolerance:2},
+  {situation:'2000 м биіктікте',correct:93,tolerance:3},
+  {situation:'Қысым қазанында',correct:115,tolerance:10},
+];
+function buildFillTable(){
+  const tb=document.querySelector('#fill-table tbody');tb.innerHTML='';document.getElementById('fill-score').textContent='';del('table');
+  fillRows.forEach((r,i)=>{
+    const tr=document.createElement('tr');tr.dataset.idx=i;
+    tr.innerHTML=`<td>${r.situation}</td><td><input type="text" placeholder="°C"></td>`;tb.appendChild(tr);
+  });
+}
+function checkFillTable(){
+  let correct=0;
+  document.querySelectorAll('#fill-table tbody tr').forEach(tr=>{
+    const i=+tr.dataset.idx,inp=tr.querySelector('input'),val=parseFloat(inp.value.replace(',','.'));
+    tr.classList.remove('correct','wrong');
+    if(!isNaN(val)&&Math.abs(val-fillRows[i].correct)<=fillRows[i].tolerance){tr.classList.add('correct');correct++;}
+    else if(inp.value.trim()!=='')tr.classList.add('wrong');
+  });
+  document.getElementById('fill-score').textContent=`${correct}/${fillRows.length}`;
+  record('table',correct,fillRows.length);
+}
+function resetFillTable(){buildFillTable();}
+buildFillTable();
+
+/* ============== ЕСЕП ============== */
+const SUBS=[{n:'су',L:2.3e6},{n:'спирт',L:0.9e6},{n:'эфир',L:0.4e6}];
+const MASSES=[0.5,1,1.5,2,2.5,3,4,5];
+const SUP='⁰¹²³⁴⁵⁶⁷⁸⁹';
+function fmt(v){
+  const e=Math.floor(Math.log10(Math.abs(v)));
+  const m=(v/Math.pow(10,e)).toFixed(2).replace(/\.?0+$/,'').replace('.',',');
+  return m+' · 10'+String(e).split('').map(c=>SUP[c]).join('');
+}
+const kz=x=>String(x).replace('.',',');
+let currentCalc=null,calcOk=0,calcTried=0;
+function generateCalc(){
+  const sub=SUBS[Math.floor(Math.random()*SUBS.length)],m=MASSES[Math.floor(Math.random()*MASSES.length)];
+  const kind=['Q','cond','m'][Math.floor(Math.random()*3)];
+  const Ltxt=`L = ${fmt(sub.L)} Дж/кг`;let text,ans,unit;
+  if(kind==='Q'){text=`m = ${kz(m)} кг ${sub.n} қайнау температурасында толығымен буға айналуы үшін қанша жылу қажет? (${Ltxt})`;ans=m*sub.L;unit='Дж';}
+  else if(kind==='cond'){text=`Қайнау температурасындағы ${kz(m)} кг ${sub.n} буы толығымен сұйыққа айналды (конденсация). Қанша жылу бөлінеді? (${Ltxt})`;ans=m*sub.L;unit='Дж';}
+  else{text=`Қайнау температурасындағы ${sub.n} буға айналғанда ${fmt(m*sub.L)} Дж жылу жұмсалды. Заттың массасын тап. (${Ltxt})`;ans=m;unit='кг';}
+  currentCalc={ans,unit,done:false};
+  document.getElementById('calc-question').innerHTML=`<p style="font-weight:700;">${text}</p>`;
+  document.getElementById('calc-hint').innerHTML=unit==='Дж'
+    ?'Жауабы: <b>Дж</b>-мен. Жазу үлгісі: <b>4600000</b> немесе <b>4,6·10⁶</b> немесе <b>4.6e6</b>'
+    :'Жауабы: <b>кг</b>-мен (үтір немесе нүкте қолдануға болады).';
+  document.getElementById('calc-input').value='';document.getElementById('calc-feedback').className='feedback';
+}
+function parseNum(raw){
+  let s=raw.toLowerCase().replace(/дж|кг/g,'').replace(/[\s\u00a0]/g,'').replace(/,/g,'.');
+  s=s.replace(/[⁰¹²³⁴⁵⁶⁷⁸⁹⁻]+/g,m=>'^'+[...m].map(c=>'0123456789-'['⁰¹²³⁴⁵⁶⁷⁸⁹⁻'.indexOf(c)]).join(''));
+  const r=s.match(/^([+-]?\d*\.?\d+)(?:e([+-]?\d+)|[·×*x⋅∙]10\^?([+-]?\d+))?$/);
+  if(!r)return NaN;
+  const e=r[2]||r[3];return e?parseFloat(r[1])*Math.pow(10,+e):parseFloat(r[1]);
+}
+function checkCalc(){
+  const val=parseNum(document.getElementById('calc-input').value),fb=document.getElementById('calc-feedback'),c=currentCalc;
+  if(isNaN(val)){fb.className='feedback bad';fb.textContent='Санды енгізіңіз: 4600000, 4,6·10⁶ немесе 4.6e6';return;}
+  const ok=Math.abs(val-c.ans)<=c.ans*0.05;
+  if(!c.done){c.done=true;calcTried++;if(ok)calcOk++;record('calc',calcOk,calcTried);}
+  if(ok){fb.className='feedback ok';fb.textContent=`✔ Дұрыс! Жауабы: ${fmt(c.ans)} ${c.unit}`;}
+  else{fb.className='feedback bad';
+    fb.textContent=`✘ Қате. Дұрыс жауап: ${c.unit==='Дж'?fmt(c.ans):kz(c.ans)} ${c.unit}`+(c.unit==='Дж'&&val<1000?'. Ескерту: 10⁶ көбейткішін жазуды ұмытпа.':'');}
+}
+function nextCalc(){generateCalc();}
+generateCalc();
+
+/* ============== НӘТИЖЕ ============== */
+function rows(){return Object.keys(NAMES).map(k=>[NAMES[k],RES[k]?RES[k].g:'',RES[k]?RES[k].t:'']);}
+function totals(){let g=0,t=0;Object.values(RES).forEach(r=>{g+=r.g;t+=r.t;});return [g,t,t?Math.round(g/t*100):0];}
+function renderResults(){
+  const body=document.getElementById('res-body');if(!body)return;
+  const [g,t,p]=totals();
+  body.innerHTML='<table class="fill"><thead><tr><th>Тапсырма</th><th>Дұрыс</th><th>Барлығы</th></tr></thead><tbody>'
+    +rows().map(r=>`<tr><td>${r[0]}</td><td>${r[1]===''?'—':r[1]}</td><td>${r[2]===''?'—':r[2]}</td></tr>`).join('')
+    +`<tr><th>Жиыны</th><th>${g}</th><th>${t} (${p}%)</th></tr></tbody></table>`;
+}
+function reportText(){
+  const [g,t,p]=totals();
+  return `Оқушы: ${studentName()||'—'}\nКүні: ${new Date().toLocaleString('kk-KZ')}\n`
+    +rows().map(r=>`${r[0]}: ${r[1]===''?'орындалмады':r[1]+'/'+r[2]}`).join('\n')+`\nЖиыны: ${g}/${t} (${p}%)`;
+}
+function resMsg(m){const f=document.getElementById('res-fb');f.className='feedback ok';f.textContent=m;}
+function copyRes(){
+  const txt=reportText();
+  const fallback=()=>{const a=document.createElement('textarea');a.value=txt;document.body.appendChild(a);a.select();try{document.execCommand('copy');resMsg('✔ Көшірілді');}catch(e){resMsg('Көшіру мүмкін болмады');}a.remove();};
+  if(navigator.clipboard&&window.isSecureContext)navigator.clipboard.writeText(txt).then(()=>resMsg('✔ Көшірілді'),fallback);else fallback();
+}
+function dlRes(){
+  const nm=studentName()||'—',d=new Date().toLocaleString('kk-KZ'),[g,t]=totals();
+  const csv='\ufeff'+['Оқушы;Тапсырма;Дұрыс;Барлығы;Күні']
+    .concat(rows().map(r=>[nm,r[0],r[1],r[2],d].join(';')),[[nm,'Жиыны',g,t,d].join(';')]).join('\r\n');
+  const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'}));
+  a.download='natije_'+nm.replace(/[^\wА-Яа-яӘәҒғҚқҢңӨөҰұҮүҺһІі]+/g,'_')+'.csv';
+  document.body.appendChild(a);a.click();a.remove();resMsg('✔ Файл жүктелді');
+}
+document.querySelector('[data-tab="result"]').addEventListener('click',renderResults);
+renderResults();
+</script>
+</body>
+</html>
